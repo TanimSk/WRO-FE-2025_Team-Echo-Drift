@@ -506,8 +506,8 @@ For clockwise laps, the robot turns right when it approaches the outer boundary,
 
 <img width="346" height="247" alt="image" src="https://github.com/user-attachments/assets/f4b9115d-00ec-4813-bb9b-b50e2d9b4e70" />
 
-
-
+We implemented the odometry system in a dedicated Python class. The complete implementation — including position tracking, orientation updates, and boundary detection — can be found here:  
+**[odometry.py](https://github.com/nurulislam21/WRO-FE-2025_Team-Echo-Drift/blob/main/src/raspberrypi/odometry.py)**
 
 
 To draw this odometry, we've collected some data of encoder ticks and gyro angle by running our bot on the track few times, and made `csv` files.
@@ -516,10 +516,15 @@ For analyzing the values, we've used [MATLAB](https://www.mathworks.com/)
 
 <img width="1440" height="787" alt="image" src="https://github.com/user-attachments/assets/126efcdc-e461-494a-8e94-372904fda5ec" />
 
+The csv file format was:
+| **ticks** | **angle** |
+|----------|-------------|
+| Encoder ticks | Gyro angle |
+| ... | ... |
 
-Then we've discovered that, the bot was drifting away, due to machanical error, after that we have used [Moving Average](https://en.wikipedia.org/wiki/Moving_average) realtime with the previous lap data, and hence 
+
+Then we've discovered that, the bot was drifting away, due to mechanical error, after that we have used [Moving Average](https://en.wikipedia.org/wiki/Moving_average) realtime with the previous lap data, and hence 
 calculated the drift of xy coordinates. After that, we substracted these values to omit the drift.
-
 
 <br>
 
