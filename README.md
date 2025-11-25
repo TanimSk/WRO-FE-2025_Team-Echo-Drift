@@ -511,7 +511,7 @@ We implemented the odometry system in a dedicated Python class. The complete imp
 
 
 To draw this odometry, we've collected some data of encoder ticks and gyro angle by running our bot on the track few times, and made `csv` files.
-For analyzing the values, we've used [MATLAB](https://www.mathworks.com/) 
+For analyzing the values, we've used [MATLAB](https://www.mathworks.com/)
 
 
 <img width="1440" height="787" alt="image" src="https://github.com/user-attachments/assets/126efcdc-e461-494a-8e94-372904fda5ec" />
@@ -525,6 +525,9 @@ The csv file format was:
 
 Then we've discovered that, the bot was drifting away, due to mechanical error, after that we have used [Moving Average](https://en.wikipedia.org/wiki/Moving_average) realtime with the previous lap data, and hence 
 calculated the drift of xy coordinates. After that, we substracted these values to omit the drift.
+
+Matlab code can be found here:
+**[src/data_analysis](https://github.com/nurulislam21/WRO-FE-2025_Team-Echo-Drift/tree/main/src/data_analysis)**
 
 <br>
 
