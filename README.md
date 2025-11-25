@@ -195,7 +195,7 @@ The WRO Future Engineers 2025 competition is divided into **two progressive roun
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | *Hardware*             | - PLA + Aluminum Hybrid Chassis  <br> - 1× DC Geared Motors (12V, 600RPM, 1.2Nm)  <br> - High-Torque Servo (15kg·cm)  <br> - 65mm Rubberized Wheels                   | - Rigid but lightweight frame ensures stability and durability. <br> - Motor torque chosen with ~30% safety margin for acceleration under load. <br> - Servo provides precise steering with quick response. <br> - Wheel diameter selected for a balance between speed and traction.             |
 | *Power*                | - 3S LiPo (11.1V, 2200mAh)  <br> - Power Distribution Board (12V, 5V outputs)  <br> - XT60 Connectors                                                    | - LiPo selected for high discharge rate, lightweight, and compact size. <br> - Separate regulated lines prevent voltage drop issues. <br> - XT60 provides short-circuit and overload safety.                                                                                              |
-| *Perception*           | - Camera <br> - Wheel                                             | - Camera handles *lane detection and vision-based markers*. <br> - IMU improves orientation and stability on turns. <br> - Encoders provide real-time speed & distance for closed-loop control.                              |
+| *Perception*           | - Camera <br> - Gyro <br> - Encoder                                             | - Camera handles *lane detection and vision-based markers*. <br> - IMU improves orientation and stability on turns. <br> - Encoders provide real-time speed & distance for closed-loop control.                              |
 | *Control & Processing* | - Raspberry Pi 5 (Python + OpenCV)  <br> - Arduino Nano (C++)  <br> - UART Serial Link                                                                                | - Pi processes camera input & makes high-level decisions. <br> - Arduino handles *PWM signals, interrupts, and motor control* with real-time precision. <br> - UART ensures fast, low-latency communication between subsystems.                                                               |
 | *Decision*             | - OpenCV Line Detection  <br> - Sensor Fusion (Camera)  <br> - PID Steering Control  <br> - Encoder-based Speed Feedback  <br> - Emergency Stop Failsafe | - Lane tracking optimized with *real-time vision algorithms*. <br> - Sensor fusion improves obstacle avoidance accuracy. <br> - PID ensures smooth steering corrections. <br> - Encoders maintain consistent velocity. <br> - Safety protocol: robot halts when conflicting data is detected. |
 | *Actuation*            | -  Motor Driver   <br> - PWM Servo Driver                                                                                                      | - H-Bridge supplies bidirectional control for drive motors. <br> - Servo driver ensures precise angle control. <br> - Final output: *smooth differential drive with adaptive steering*.                                                                                                       |
@@ -327,14 +327,19 @@ git clone https://github.com/nurulislam21/WRO-FE-2025_Team-Echo-Drift/
 cd WRO-FE-2025_Team-Echo-Drift/src
 # install the dependencies
 pip install -r requirements.txt
+
 # run the program
-python raspberrypi/main.py --debug
+# for open challenge
+python raspberrypi/open_challenge.py --debug
+
+# for obstacle challenge
+python raspberrypi/obstacle_challenge.py --debug
 
 # for starting the program on startup, register it as a service or a crontab
 
 ```
 
-We have divided the whole into 6 segments, each segment runs a seperate image processing thread.
+We have divided the whole frame into 6 segments, each segment runs a seperate image processing thread.
 
 <img width="500" height="736" alt="image" src="v-photos/ROI-POV.png" />
 
@@ -407,7 +412,7 @@ UPPER_MAGENTA = np.array([170, 121, 145])
 
 <br>
 
-Then we made a class called `ContourWorkers.py` in [contour_workers.py](https://github.com/nurulislam21/WRO-FE-2025_Team-Echo-Drift/blob/main/src/raspberrypi/contour_workers.py), this class is used to get contours based on the passed color ranges. ContourWorker starts 8 seperate thread for 8 regions, and processes them individually. Thus we are able to keep a decent FPS (around 25) while our bot is on the go. We are using `Queue` with size of 2 to make sure our frames are queued and passed to the thread and processed accordingly:
+Then we made a class called `ContourWorkers.py` in [contour_workers.py](https://github.com/nurulislam21/WRO-FE-2025_Team-Echo-Drift/blob/main/src/raspberrypi/contour_workers.py), this class is used to get contours based on the passed color ranges. ContourWorker starts 6 seperate thread for 6 regions, and processes them individually. Thus we are able to keep a decent FPS (around 25) while our bot is on the go. We are using `Queue` with size of 2 to make sure our frames are queued and passed to the thread and processed accordingly:
 
 ```py
 # queues
@@ -421,7 +426,7 @@ self.frame_queue_green = Queue(maxsize=2)
 
 <br>
 
-After that, we were facing an issue for motion blur due to speed. We've resolved this issue by setting explicit `Exposure rate` and `Analogue gain` in our camera configuration:
+After that, we were facing an issue for motion blur due to speed. We've resolved this issue by setting explicit `Exposure rate` and `Analogue gain`, and disabling `Auto Exposure` & `Auto white balance` in our camera configuration:
 
 <img width="560" alt="image" src="https://github.com/user-attachments/assets/d37004e0-7c14-49ed-90fa-8d76a48db845" />
 
@@ -441,20 +446,17 @@ picam2.set_controls(
 
 <br>
 
-After the program is executed, we start 8 threads, and inside while loop, we are collecting the contour result in each iteration:
+After the program is executed, we start 6 threads, and inside while loop, we are collecting the contour result in each iteration:
 
 ```py
 # Retrieve all results from queues (non-blocking)
 (
     left_result,
     right_result,
-    orange_result,
-    blue_result,
     green_result,
     red_result,
     reverse_result,
     front_wall_result,
-    parking_result,
 ) = contour_workers.collect_results()
 ```
 
@@ -489,10 +491,23 @@ normalized_angle_offset = pid(error)
 
 <br>
 
-For Lap detection, we are using odometry (getting xy coords from encoders and gyro)
+For Lap detection & steering in tight spaces, we are using odometry (getting xy coords from encoders and gyro)
 
 
 ![odometry](https://github.com/user-attachments/assets/b58366ba-ec3c-489a-a64e-3c3e39929d62)
+
+**Lap detection strategy**: We track an imaginary inner and outer rectangle using odometry. A starting-region rectangle marks the lap point. When the robot re-enters this region after a time threshold, a lap is counted. After three laps, the robot stops.
+
+<img width="408" height="346" alt="image" src="https://github.com/user-attachments/assets/1f6d235b-3bbf-4541-ba4a-409be4a49257" />
+
+**Tight-Space cornering Strategy**: In narrow corners, visual navigation alone is insufficient because the black wall directly ahead blocks reliable image-based guidance. To handle this, we incorporate odometry to estimate the robot’s position relative to the outer and inner boundaries.
+
+For clockwise laps, the robot turns right when it approaches the outer boundary, and left when it gets too close to the inner boundary. For counterclockwise laps, the logic is reversed. This ensures smooth cornering even in visually challenging tight spaces.
+
+<img width="346" height="247" alt="image" src="https://github.com/user-attachments/assets/f4b9115d-00ec-4813-bb9b-b50e2d9b4e70" />
+
+
+
 
 
 To draw this odometry, we've collected some data of encoder ticks and gyro angle by running our bot on the track few times, and made `csv` files.
