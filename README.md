@@ -251,7 +251,7 @@ Mobility management defines how the robot moves, steers, and maintains stability
 #### Engineering Principle
 Torque Required = Wheel Radius × Force (Load + Friction)
 
--Our calculation showed motor Required torque ≈ **0.9 Nm**  
+- Our calculation showed motor Required torque ≈ **0.9 Nm**  
 - Selected N20 motors rated ≈ **1.2 Nm** → safe margin  
 - Speed doubles from ~1.0 m/s (300 RPM) to ~2.0 m/s (600 RPM) on 45 mm wheels.
 
@@ -277,7 +277,13 @@ The hardware design balances **mechanical precision** with **reliable electronic
   
 - **Chassis:** Fully 3D-printed (SolidWorks STL); lightweight yet strong
 <img alt="SolidWorks Design" width="500" style="display:inline-block; vertical-align: top;" src="https://github.com/user-attachments/assets/2654091d-9e7f-4d39-88c8-5cd7c34ee622" />
-<img src="v-photos/isometric_view.jpg" alt="Vehicle Side View" width="500" style="display:inline-block; vertical-align: top;"/> 
+<img src="v-photos/isometric_view.jpg" alt="Vehicle Side View" width="500" style="display:inline-block; vertical-align: top;"/>
+
+- **ND filter for camera**: We later mounted an ND filter in front of the camera to maintain consistent lighting in bright environments. By tuning the ND filter, we were able to reduce glare and stabilize exposure, ensuring more reliable image processing.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/288ff47d-43f7-463d-a155-2b2da8bb494a" width="300px" />
+  <img src="https://github.com/user-attachments/assets/03925aca-f821-4219-8d19-d27f0be80add" width="300px" />
+</p>
 
 
 ---
