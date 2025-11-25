@@ -135,11 +135,12 @@ The WRO Future Engineers 2025 competition is divided into **two progressive roun
 
 ## Our Robot
 ### Robot Overview  
-**Echo Drift** brings a **next-generation autonomous EV** to WRO 2025, built for speed, accuracy, and adaptability.
+**Echo Drift** brings a **Vision guided Robot** to WRO 2025, built for speed, accuracy, and adaptability.
   
 - Precise track navigation  
 - Real-time obstacle avoidance  
 - Controlled drift manoeuvres
+- Odometry analysis from gyro and encoder
 
 🛠️ 3D-printed chassis | 🔌 Smart sensors & drivers | 🧠 Vision & PID control
 
@@ -149,7 +150,7 @@ The WRO Future Engineers 2025 competition is divided into **two progressive roun
 
 | Parameter | Value |
 |-----------|-------|
-| *Dimensions* | 20 cm (L) × 11 cm (W) × 18 cm (H) |
+| *Dimensions* | 20 cm (L) × 11 cm (W) × 25 cm (H) |
 | *Weight* | ~ 0.7 kg |
 | *Chassis* | Modular 3D-printed PLA with reinforced mounts |
 | *Motors* | N20 motor  |
