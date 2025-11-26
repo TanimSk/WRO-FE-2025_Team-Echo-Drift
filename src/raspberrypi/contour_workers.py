@@ -290,12 +290,12 @@ class ContourWorkers:
                         self.LEFT_REGION,
                         direction="left",
                         use_convex_hull=False,
-                        consider_area=800,
+                        consider_area=400,
                         method=self.color_ranges["MAGENTA_COLOR_SPACE"],
                     )
                     magenta_area, _ = max_contour_area(contours)
 
-                    if magenta_area > black_area:
+                    if magenta_area > 0:
                         result = ContourResult(magenta_area, contours, "magenta_left")
 
                 try:
@@ -340,12 +340,12 @@ class ContourWorkers:
                         self.RIGHT_REGION,
                         direction="right",
                         use_convex_hull=True,
-                        consider_area=800,
+                        consider_area=400,
                         method=self.color_ranges["MAGENTA_COLOR_SPACE"],
                     )
                     magenta_area, _ = max_contour_area(contours)
 
-                    if magenta_area > black_area:
+                    if magenta_area > 0:
                         result = ContourResult(magenta_area, contours, "magenta_right")
 
                 try:
