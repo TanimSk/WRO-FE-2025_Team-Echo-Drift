@@ -40,11 +40,11 @@ Explore the repository to learn more about our system design, documentation, and
 
 We’re three young innovators from across Bangladesh, brought together by our love for robotics and tech. We first met as solo competitors sharing ideas, dreams, and soon a vision. That’s how our team was born.
 
-<!-- Nurul Islam Noman -->
+<!-- Noman -->
 <table>
   <tr>
     <td>
-<h2> Nurul Islam Noman - Mechanical Engineering </h2>
+<h2> Noman - Mechanical Engineering </h2>
 
 Specialized in Mechanical Design with experience in SolidWorks, Fusion 360, for 3D modeling. Strong background in robotics and embedded systems, 
 supported by hands-on R&D work. Experience in robotics and embedded systems supports a well-rounded engineering approach, enabling the design of precise, reliable, and integrated mechanical solutions.

@@ -155,6 +155,9 @@ class Parking:
                                 )
                             except ValueError:
                                 pass
+            
+            # stop bot
+            self.arduino.write(f"0,-1,95\n".encode())
 
                 # if arduino.in_waiting > 0:
             #     line = arduino.readline().decode("utf-8").rstrip()
