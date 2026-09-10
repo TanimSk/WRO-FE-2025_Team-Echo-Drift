@@ -607,8 +607,8 @@ def clamp_angle(totalAngle, threshold=5):
 
 
 def main():
-    """Main function to run odometry tracking simulation."""
-    from odometry_log3 import od
+    """Main function to run odometry tracking simulation. 0, 3, 4, 5, 6"""
+    from odometry_log2 import od
 
     # Sample odometry data (ticks, gyro_angle)
     odometry_data = od
@@ -693,7 +693,8 @@ def main():
             visualizer.update_plot(tracker.get_position_history(), auto_fit=False, current_angle=gyro_angle)
             print("intersect" if visualizer.intersects_middle_rectangle(tracker.x, tracker.y, visualizer.next_x + tracker.x, visualizer.next_y + tracker.y) else "outside")
             if visualizer.intersects_middle_rectangle(tracker.x, tracker.y, visualizer.next_x + tracker.x, visualizer.next_y + tracker.y):
-                time.sleep(1)         
+                # time.sleep(1)         
+                pass
 
         print("\nSimulation complete!")
         print(f"Final position: x={tracker.x:.3f}m, y={tracker.y:.3f}m")

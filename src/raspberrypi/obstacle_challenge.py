@@ -2,11 +2,9 @@ import os
 import json
 import sys
 import time
-import serial
 import cv2
 import numpy as np
 import threading
-from picamera2 import Picamera2
 import time
 from collections import deque
 from img_processing_functions import (
@@ -24,13 +22,13 @@ from simple_pid import PID
 import copy
 from odometry import OdometryTracker, OdometryVisualizer, clamp_angle
 import math
+from hardware import create_hardware, run_entrypoint
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # debug flag parsing
-debug_flag = sys.argv[1] == "--debug" if len(sys.argv) > 1 else ""
-if debug_flag:
-    DEBUG = True
-else:
-    DEBUG = False
+DEBUG = "--debug" in sys.argv[1:]
+SIMULATED = "--sim" in sys.argv[1:]
 
 # DEBUG = True
 print("-- DEBUG MODE --" if DEBUG else "-- PRODUCTION --")
@@ -242,8 +240,33 @@ start_processing = False
 stop_flag = False
 
 # Serial communication
-arduino = serial.Serial(port="/dev/ttyUSB0", baudrate=115200, dsrdtr=True)
-time.sleep(2)
+hardware = create_hardware(
+    simulated=SIMULATED,
+    mode=MODE,
+    width=CAM_WIDTH,
+    height=CAM_HEIGHT,
+    argv=sys.argv[1:],
+    rois={
+        "left": LEFT_REGION,
+        "right": RIGHT_REGION,
+        "lap": LAP_REGION,
+        "obstacle": OBS_REGION,
+        "reverse": REVERSE_REGION,
+        "front_wall": FRONT_WALL_REGION,
+        "parking": PARKING_LOT_REGION,
+        "left_danger": DANGER_ZONE_POINTS[0],
+        "right_danger": DANGER_ZONE_POINTS[1],
+    },
+)
+# Persisted ROI dimensions are loaded by the simulator hardware boundary.
+BLACK_WALL_DETECTOR_AREA = (LEFT_REGION[2] - LEFT_REGION[0]) * (
+    LEFT_REGION[3] - LEFT_REGION[1]
+)
+arduino = hardware.serial
+if hardware.output_directory is not None:
+    os.chdir(hardware.output_directory)
+    print(f"Simulator logs: {hardware.output_directory}")
+time.sleep(hardware.serial_warmup_seconds)
 arduino.write(b"0,-1,95\n")
 
 # parking
@@ -310,16 +333,15 @@ def main():
     green_obj_x, green_obj_y = None, None
     # show_front_wall = False
 
-    # Initialize PiCamera2
-    picam2 = Picamera2()
+    # Camera object is physical or virtual, selected at the hardware boundary.
+    picam2 = hardware.camera
     config = picam2.create_preview_configuration(
         main={"format": "RGB888", "size": (CAM_WIDTH, CAM_HEIGHT)}
     )
     picam2.configure(config)
     # load camera settings from file
     try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        tools_dir = os.path.join(script_dir, "..", "tools")
+        tools_dir = os.path.join(SCRIPT_DIR, "..", "tools")
         tools_dir = os.path.abspath(tools_dir)
         with open(os.path.join(tools_dir, "camera_settings.json"), "r") as f:
             settings = json.load(f)
@@ -328,7 +350,6 @@ def main():
     except FileNotFoundError:
         # Default settings if no file found
         print("No camera settings file found. Using default settings.")
-        return
 
     picam2.start()
 
@@ -352,7 +373,7 @@ def main():
 
     print(f"Started {len(threads)} processing threads")
 
-    time.sleep(2)  # Allow camera to warm up
+    time.sleep(hardware.camera_warmup_seconds)
     angle = STRAIGHT_CONST
 
     try:
@@ -951,4 +972,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run_entrypoint(main, hardware)

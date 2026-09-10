@@ -1,5 +1,9 @@
 .pio
 .vscode
 venv/
+.venv-sim*/
+__pycache__/
 .DS_Store
 odometry_debug_log.txt
+src/raspberrypi/sim/runs/
+src/raspberrypi/sim/simulator-settings-*.json
