@@ -7,6 +7,7 @@ import json
 import math
 import random
 import time
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -16,6 +17,7 @@ import numpy as np
 from hardware import SimulatorRestartRequested
 from .ui import SimulatorUI
 from .vehicle import SimVehicle
+from .profiles import track_scale, valid_post, parking_geometry, start_pose
 
 
 class PyBulletWorld:
@@ -34,25 +36,26 @@ class PyBulletWorld:
         if config.gui:
             # Keep PyBullet's right-side debug panel visible. SimulatorUI uses this
             # native panel for sliders and push buttons.
-            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 1, physicsClientId=self.client_id)
-            p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0, physicsClientId=self.client_id)
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, int(config.legacy_controls), physicsClientId=self.client_id)
+            p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, int(config.track.shadows), physicsClientId=self.client_id)
 
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.output_directory = output_root / stamp
-        self.output_directory.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        output_root.mkdir(parents=True, exist_ok=True)
+        self.output_directory = Path(tempfile.mkdtemp(prefix=stamp + "_", dir=output_root))
         self._ground_file = (self.output_directory / "ground_truth.csv").open("w", newline="")
         self._ground_writer = csv.writer(self._ground_file)
-        self._ground_writer.writerow(("time_s", "x_m", "y_m", "yaw_deg"))
+        self._ground_writer.writerow(("time_s", "x_m", "y_m", "yaw_deg", "obstacle_contacts"))
         (self.output_directory / "run_config.json").write_text(json.dumps(_as_json(config), indent=2))
 
         self._rng = random.Random(config.seed)
         self.colors = self._load_colors()
+        self.post_positions = []
         self._build_track()
         start, yaw = self._start_pose(mode, config.direction)
         self.vehicle = SimVehicle(p, self.client_id, config.vehicle, start, yaw)
-        self.running = not config.gui
+        self.running = not config.legacy_controls
         self._events = set()
-        self.ui = SimulatorUI(p, self.client_id, config) if config.gui else None
+        self.ui = SimulatorUI(p, self.client_id, config) if config.gui and config.legacy_controls else None
         if self.ui is not None:
             print("Simulator ready - use the right-side panel and press START / RESUME.")
         self.start_yaw = yaw
@@ -78,6 +81,9 @@ class PyBulletWorld:
         return result
 
     def _box(self, half_extents, position, color, collision=True, yaw=0.0):
+        sy = track_scale(self.config)
+        position = (position[0], position[1] * sy, position[2])
+        half_extents = (half_extents[0], half_extents[1] * sy, half_extents[2])
         collision_id = self.p.createCollisionShape(self.p.GEOM_BOX, halfExtents=half_extents, physicsClientId=self.client_id) if collision else -1
         visual_id = self.p.createVisualShape(self.p.GEOM_BOX, halfExtents=half_extents, rgbaColor=color, physicsClientId=self.client_id)
         return self.p.createMultiBody(
@@ -88,7 +94,7 @@ class PyBulletWorld:
 
     def _build_track(self):
         t = self.config.track
-        self._box((1.8, 1.8, 0.015), (0, 0, -0.015), self.colors["white"])
+        self.floor_body = self._box((t.outer_size / 2 + .3, t.outer_size / 2 + .3, 0.015), (0, 0, -0.015), self.colors["white"])
         wall_half = t.wall_height / 2
         outer = t.outer_size / 2
         thick = t.wall_thickness / 2
@@ -115,38 +121,41 @@ class PyBulletWorld:
             (-1.0, -0.55, math.radians(35), "blue"), (-1.0, -0.62, math.radians(-35), "orange"),
             (1.0, -0.55, math.radians(-35), "blue"), (1.0, -0.62, math.radians(35), "orange"),
         ]:
-            self._box((0.38, 0.012, 0.002), (x, y, 0.003), self.colors[name], collision=False, yaw=yaw)
-        bay_x = -1.05 if self.config.direction == "ccw" else 1.05
-        self._box((0.28, 0.018, 0.003), (bay_x, -1.26, 0.004), self.colors["magenta"], collision=False)
-        self._box((0.018, 0.19, 0.003), (bay_x - 0.28, -1.075, 0.004), self.colors["magenta"], collision=False)
-        self._box((0.018, 0.19, 0.003), (bay_x + 0.28, -1.075, 0.004), self.colors["magenta"], collision=False)
+            scale = t.outer_size / 3
+            self._box((0.38 * scale, 0.012, 0.002), (x * scale, y * scale, 0.003), self.colors[name], collision=False, yaw=yaw)
+        bx, by, width, depth, yaw = parking_geometry(self.config)
+        sy = track_scale(self.config)
+        self.parking_bodies = []
+        for dx, dy, hx, hy in [(0, -depth/2, width/2, .018),
+                              (-width/2, 0, .018, depth/2),
+                              (width/2, 0, .018, depth/2)]:
+            x = bx + math.cos(yaw)*dx - math.sin(yaw)*dy
+            y = by + math.sin(yaw)*dx + math.cos(yaw)*dy
+            self.parking_bodies.append(self._box((hx, hy/sy, .003), (x, y/sy, .004),
+                                                 self.colors["magenta"], collision=False, yaw=yaw))
 
         if self.mode == "OBSTACLE":
-            defaults = [(-1.0, 0.85, "red"), (1.0, 0.85, "green"), (-1.0, -0.65, "green"), (1.0, -0.65, "red")]
+            defaults = self.config.track.posts
             positions = [(x, y) for x, y, _ in defaults]
             for x, y, color in defaults:
                 self._post(x, y, color)
             self._add_random_posts(positions)
 
     def _post(self, x, y, color):
+        self.post_positions.append((x, y, color))
         t = self.config.track
         collision = self.p.createCollisionShape(self.p.GEOM_CYLINDER, radius=t.post_radius, height=t.post_height, physicsClientId=self.client_id)
         visual = self.p.createVisualShape(self.p.GEOM_CYLINDER, radius=t.post_radius, length=t.post_height, rgbaColor=self.colors[color], physicsClientId=self.client_id)
         self.p.createMultiBody(0, collision, visual, (x, y, t.post_height / 2), physicsClientId=self.client_id)
 
     def _add_random_posts(self, occupied):
+        if self.config.random_posts <= 0:
+            return
         candidates = []
-        for _ in range(500):
-            side = self._rng.randrange(4)
-            along = self._rng.uniform(-1.18, 1.18)
-            across = self._rng.uniform(-1.12, -0.88)
-            if side == 0: point = (along, -across)
-            elif side == 1: point = (-across, along)
-            elif side == 2: point = (along, across)
-            else: point = (across, along)
-            if min((point[0] - x) ** 2 + (point[1] - y) ** 2 for x, y in occupied) < 0.12:
-                continue
-            if point[1] < -1.0 and abs(point[0] - (-1.05 if self.config.direction == "ccw" else 1.05)) < 0.45:
+        outer = self.config.track.outer_size / 2
+        for _ in range(5000):
+            point = (self._rng.uniform(-outer, outer), self._rng.uniform(-outer, outer) * track_scale(self.config))
+            if not valid_post(self.config, *point, occupied):
                 continue
             occupied.append(point)
             candidates.append(point)
@@ -154,18 +163,27 @@ class PyBulletWorld:
                 break
         for index, (x, y) in enumerate(candidates):
             self._post(x, y, "red" if index % 2 == 0 else "green")
+        if len(candidates) != self.config.random_posts:
+            raise ValueError("Not enough free lane space for requested random posts")
 
     def _start_pose(self, mode, direction):
-        if mode == "OBSTACLE":
-            x = -1.05 if direction == "ccw" else 1.05
-            yaw = 0.0 if direction == "ccw" else math.pi
-            return (x, -1.16, 0.0), yaw
-        return ((-1.0 if direction == "ccw" else 1.0), -1.0, 0.0), (0.0 if direction == "ccw" else math.pi)
+        return start_pose(self.config, mode)
 
     def advance(self):
         if self._closed:
             return
         now = time.monotonic()
+        if self.config.gui and not self.p.isConnected(self.client_id):
+            raise KeyboardInterrupt
+        if self.config.gui and not self.config.legacy_controls:
+            keys = self.p.getKeyboardEvents(physicsClientId=self.client_id)
+            if keys.get(ord('r'), 0) & self.p.KEY_WAS_TRIGGERED:
+                raise SimulatorRestartRequested
+            if keys.get(ord(' '), 0) & self.p.KEY_WAS_TRIGGERED:
+                self.running = not self.running
+                self._events.add("start" if self.running else "stop")
+                if not self.running:
+                    self.vehicle.command(0, self.config.vehicle.servo_center_deg)
         if self.ui is not None:
             if not self.p.isConnected(self.client_id):
                 raise KeyboardInterrupt
@@ -198,7 +216,9 @@ class PyBulletWorld:
             self.sim_time += dt
         position, yaw = self.vehicle.pose()
         if self.sim_time - self._last_ground_log >= 0.04:
-            self._ground_writer.writerow((f"{self.sim_time:.4f}", *[f"{v:.6f}" for v in position[:2]], f"{math.degrees(yaw):.4f}"))
+            contacts = self.p.getContactPoints(bodyA=self.vehicle.body_id, physicsClientId=self.client_id)
+            obstacles = sum(contact[2] not in (self.floor_body, self.vehicle.body_id) for contact in contacts)
+            self._ground_writer.writerow((f"{self.sim_time:.4f}", *[f"{v:.6f}" for v in position[:2]], f"{math.degrees(yaw):.4f}", obstacles))
             self._last_ground_log = self.sim_time
         if self.config.gui and self.sim_time - self._last_follow_update > 0.1:
             self.p.resetDebugVisualizerCamera(2.3, 42, -48, position, physicsClientId=self.client_id)

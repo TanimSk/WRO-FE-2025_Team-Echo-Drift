@@ -422,7 +422,7 @@ def main():
                 visualizer.update_plot(
                     tracker.get_position_history(),
                     auto_fit=False,
-                    current_angle=gyro_angle + 180,
+                    current_angle=gyro_angle,
                 )
 
                 # current_intersections = round(abs(gyro_angle) / 90)

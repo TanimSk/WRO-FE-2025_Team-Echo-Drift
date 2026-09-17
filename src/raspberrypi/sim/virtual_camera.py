@@ -17,6 +17,7 @@ class VirtualCamera:
         self.started = False
         self._last_frame_time = 0.0
         self._maps = None
+        self._map_key = None
 
     def create_preview_configuration(self, main: dict) -> dict:
         return {"main": dict(main)}
@@ -64,6 +65,10 @@ class VirtualCamera:
         image = self.world.p.getCameraImage(
             render_width, render_height, view, projection,
             renderer=renderer, physicsClientId=self.world.client_id,
+            lightDirection=[self.world.config.track.light_x, self.world.config.track.light_y, self.world.config.track.light_z],
+            lightAmbientCoeff=self.world.config.track.ambient,
+            lightDiffuseCoeff=self.world.config.track.diffuse,
+            lightSpecularCoeff=0.0, shadow=int(self.world.config.track.shadows),
         )
         rgb = np.asarray(image[2], dtype=np.uint8).reshape(render_height, render_width, 4)[..., :3]
         if (render_width, render_height) != (self.config.width, self.config.height):
@@ -72,10 +77,19 @@ class VirtualCamera:
             )
         if self.config.barrel_k1:
             rgb = self._distort(rgb)
-        return np.ascontiguousarray(rgb[..., ::-1] if self.config.output_bgr else rgb)
+        if self.config.exposure_gain != 1:
+            rgb = np.clip(rgb.astype(np.float32) * self.config.exposure_gain, 0, 255).astype(np.uint8)
+        frame = np.ascontiguousarray(rgb[..., ::-1] if self.config.output_bgr else rgb)
+        if self.world.config.gui and not self.world.config.preview and not self.world.config.processing_view:
+            cv2.imshow("Robot POV", frame if self.config.output_bgr else frame[..., ::-1])
+            if cv2.waitKey(1) & 0xff == ord('q'):
+                raise KeyboardInterrupt
+        return frame
 
     def _distort(self, image: np.ndarray) -> np.ndarray:
-        if self._maps is None:
+        key = (image.shape[:2], self.config.barrel_k1)
+        if self._maps is None or self._map_key != key:
+            self._map_key = key
             h, w = image.shape[:2]
             yy, xx = np.indices((h, w), dtype=np.float32)
             nx = (xx - (w - 1) / 2) / (w / 2)

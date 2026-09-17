@@ -138,7 +138,8 @@ class VirtualSerial:
         if self._closed:
             return
         self._closed = True
-        self.world.vehicle.command(0.0, 95.0)
+        if self.world.p.isConnected(self.world.client_id):
+            self.world.vehicle.command(0.0, self.vehicle_config.servo_center_deg)
         self._sensor_file.close()
         self._command_file.close()
         self.world.close()

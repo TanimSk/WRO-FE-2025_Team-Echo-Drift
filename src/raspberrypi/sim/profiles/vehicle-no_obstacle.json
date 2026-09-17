@@ -1,0 +1,100 @@
+{
+  "version": 2,
+  "kind": "vehicle",
+  "vehicle": {
+    "length": 0.25,
+    "width": 0.11,
+    "mass": 0.7,
+    "wheel_radius": 0.046,
+    "wheelbase": 0.18,
+    "track_width": 0.122,
+    "max_speed_mps": 0.2,
+    "max_steering_deg": 30.0,
+    "drive_force": 4.0,
+    "ticks_per_revolution": 2220,
+    "servo_center_deg": 95.0,
+    "servo_span_deg": 55.0,
+    "tire_friction": 1.2,
+    "steering_force": 3.0,
+    "steering_rate": 5.0
+  },
+  "camera": {
+    "width": 640,
+    "height": 480,
+    "fps": 25.0,
+    "horizontal_fov_deg": 110.0,
+    "near": 0.02,
+    "far": 8.0,
+    "mount_height": 0.08,
+    "mount_forward": 0.16,
+    "pitch_deg": -5.0,
+    "barrel_k1": 0.0,
+    "output_bgr": true,
+    "render_scale": 1.0,
+    "exposure_gain": 1.0
+  },
+  "noise": {
+    "encoder_scale": 1.0,
+    "encoder_noise_std_ticks": 2.0,
+    "gyro_noise_std_deg": 0.19,
+    "gyro_bias_walk_std_deg_sqrt_s": 0.02,
+    "telemetry_hz": 5.0,
+    "watchdog_seconds": 1.0
+  },
+  "rois": {
+    "left": [
+      0,
+      260,
+      230,
+      290
+    ],
+    "right": [
+      410,
+      260,
+      640,
+      290
+    ],
+    "lap": [
+      215,
+      260,
+      415,
+      305
+    ],
+    "obstacle": [
+      77,
+      110,
+      563,
+      355
+    ],
+    "reverse": [
+      263,
+      340,
+      377,
+      365
+    ],
+    "front_wall": [
+      300,
+      160,
+      340,
+      180
+    ],
+    "parking": [
+      0,
+      185,
+      640,
+      400
+    ],
+    "left_danger": {
+      "x1": 207,
+      "y1": 110,
+      "x2": 77,
+      "y2": 355
+    },
+    "right_danger": {
+      "x1": 423,
+      "y1": 110,
+      "x2": 563,
+      "y2": 355
+    }
+  }
+}

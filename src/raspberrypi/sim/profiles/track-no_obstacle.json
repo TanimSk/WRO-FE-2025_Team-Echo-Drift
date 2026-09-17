@@ -1,0 +1,66 @@
+{
+  "version": 2,
+  "kind": "track",
+  "track": {
+    "outer_size": 3.0,
+    "island_size": 1.0,
+    "wall_height": 0.2,
+    "wall_thickness": 0.035,
+    "post_radius": 0.035,
+    "post_height": 0.15,
+    "shape": "square",
+    "length_scale": 1.0,
+    "ambient": 0.6,
+    "diffuse": 0.4,
+    "light_x": -3.0,
+    "light_y": -4.0,
+    "light_z": 8.0,
+    "shadows": false,
+    "posts": [
+      [
+        -1.0,
+        0.85,
+        "red"
+      ],
+      [
+        1.0,
+        0.85,
+        "green"
+      ],
+      [
+        -1.0,
+        -0.65,
+        "green"
+      ],
+      [
+        1.0,
+        -0.65,
+        "red"
+      ]
+    ]
+  },
+  "odometry": {
+    "start_zone_half_width": 0.25,
+    "start_zone_half_height": 1.0,
+    "lap_interval_seconds": 6.0,
+    "drift_alpha": 0.3,
+    "max_drift_threshold": 0.3,
+    "estimated_wheel_radius": 0.046,
+    "estimated_ticks_per_rev": 2220,
+    "estimated_gear_ratio": 1.0
+  },
+  "parking": {
+    "custom": true,
+    "center_x": 0.05,
+    "center_y": -1.075,
+    "width": 0.56,
+    "depth": 0.38,
+    "rotation_deg": 180.0,
+    "start_offset_x": 0.0,
+    "start_offset_y": -0.085,
+    "heading_deg": 0.0
+  },
+  "direction": "ccw",
+  "seed": 1,
+  "random_posts": 0
+}

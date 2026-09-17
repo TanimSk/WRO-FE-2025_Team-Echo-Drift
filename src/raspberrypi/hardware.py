@@ -11,6 +11,7 @@ from typing import Any, Optional
 # Capture this before simulator setup changes the working directory to its run
 # folder. sys.argv[0] may be a relative path such as raspberrypi/open_challenge.py.
 ENTRYPOINT_PATH = Path(sys.argv[0]).resolve()
+ENTRYPOINT_DIRECTORY = Path.cwd()
 
 
 class SimulatorRestartRequested(BaseException):
@@ -50,12 +51,17 @@ def create_hardware(
 
 def run_entrypoint(main, hardware: HardwareBundle) -> None:
     """Run an entry point and perform a complete restart when the UI requests it."""
+    if hardware.world is not None:
+        from sim.odometry_settings import apply_odometry_settings
+
+        apply_odometry_settings(main.__globals__, hardware.world.config)
     try:
         main()
     except SimulatorRestartRequested:
         import os
 
         print("Restarting simulator...")
+        os.chdir(ENTRYPOINT_DIRECTORY)
         os.execv(
             sys.executable,
             [sys.executable, str(ENTRYPOINT_PATH), *sys.argv[1:]],

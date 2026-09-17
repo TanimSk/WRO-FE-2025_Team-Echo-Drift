@@ -4,6 +4,11 @@ import cv2
 import numpy as np
 from collections import defaultdict
 
+# Optional diagnostic sinks, installed only by the simulator's processing view.
+# They observe masks and display frames; detector outputs are unchanged.
+mask_observer = None
+debug_frame_observer = None
+
 
 def replace_closest(polygon, new_point):
     # Compute distances from new_point to each polygon vertex
@@ -132,6 +137,8 @@ def find_contours(
     kernel = np.ones((13, 13), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    if mask_observer is not None:
+        mask_observer(roi, lower_color, method, mask)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if consider_area is not None:
@@ -358,7 +365,10 @@ def display_debug_screen(
         2,
     )
 
-    cv2.imshow("Debug View", debug_frame)
+    if debug_frame_observer is not None:
+        debug_frame_observer(debug_frame)
+    else:
+        cv2.imshow("Debug View", debug_frame)
 
 
 def get_max_y_coord(contours) -> tuple[int, int] | tuple[None, None]:

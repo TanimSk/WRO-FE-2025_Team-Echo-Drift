@@ -14,6 +14,9 @@ def create_simulated_hardware(config, mode: str = "NO_OBSTACLE") -> HardwareBund
     world = PyBulletWorld(config, mode=mode, output_root=output_root)
     camera = VirtualCamera(world, config.camera)
     serial = VirtualSerial(world, config.noise, config.vehicle, config.seed)
+    if config.processing_view:
+        from .processing_view import install
+        world.processing_display = install(config)
     return HardwareBundle(
         camera=camera,
         serial=serial,

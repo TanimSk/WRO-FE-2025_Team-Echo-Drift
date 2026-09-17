@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "kind": "track",
+  "track": {
+    "outer_size": 3,
+    "island_size": 1,
+    "wall_height": 0.2,
+    "wall_thickness": 0.035,
+    "post_radius": 0.035,
+    "post_height": 0.15,
+    "shape": "square",
+    "length_scale": 1,
+    "ambient": 0.6,
+    "diffuse": 0.4,
+    "light_x": -3,
+    "light_y": -4,
+    "light_z": 8,
+    "shadows": false,
+    "posts": [
+      [
+        -1,
+        0.85,
+        "red"
+      ],
+      [
+        1,
+        0.85,
+        "green"
+      ],
+      [
+        -1,
+        -0.65,
+        "green"
+      ],
+      [
+        1,
+        -0.65,
+        "red"
+      ]
+    ]
+  },
+  "direction": "ccw",
+  "seed": 1,
+  "random_posts": 0
+}
